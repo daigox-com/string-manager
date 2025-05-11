@@ -11,29 +11,21 @@ use Random\RandomException;
  * A collection of stateless string‑handling helpers with first‑class support for
  * multilingual input (English / Persian) and UTF‑8‑safe operations.
  *
- * @author  Your Name
+ * — Added form‑input sanitizers (sanitizePlainText, sanitizePersonName, escapeHtml, sanitizeNumericInput)
+ *
+ * @author  DaigoX.com
  * @license MIT
  *
  * @psalm-immutable
  */
 final class StringManager
 {
-    /**
-     * Disallow instantiation & cloning. Utility class only.
-     */
+    /** Prevent instantiation & cloning. */
     private function __construct() {}
     private function __clone() {}
 
     // ──────────────────────────────── Sanitisers ────────────────────────────────
 
-    /**
-     * Normalises a username:
-     *  • Converts Persian digits → English.
-     *  • Replaces whitespace with `_`.
-     *  • Drops any non‑word characters.
-     *  • Collapses multiple underscores.
-     *  • Trims leading / trailing underscores.
-     */
     public static function sanitizeUsername(string $input, bool $toLowerCase = true): string
     {
         $input = self::convertPersianNumbersToEnglish($input);
@@ -45,17 +37,13 @@ final class StringManager
         return $toLowerCase ? mb_strtolower($input, 'UTF-8') : (string) $input;
     }
 
-    /**
-     * Password sanitiser: converts Persian digits → English & lower‑cases.
-     */
+    /** Password sanitiser: converts Persian digits → English & lower‑cases. */
     public static function sanitizePassword(string $input): string
     {
         return mb_strtolower(self::convertPersianNumbersToEnglish($input), 'UTF-8');
     }
 
-    /**
-     * SEO‑friendly slug generator.
-     */
+    /** SEO‑friendly slug generator. */
     public static function sanitizeSlug(string $input, bool $toLowerCase = true): string
     {
         $input = self::convertPersianNumbersToEnglish($input);
@@ -67,17 +55,54 @@ final class StringManager
         return $toLowerCase ? mb_strtolower($input, 'UTF-8') : (string) $input;
     }
 
-    /**
-     * Converts Persian digits to English digits within a string.
-     */
+    /** Converts Persian digits to English digits within a string. */
     public static function convertPersianNumbersToEnglish(string $input): string
     {
-        static $map = [
-            '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
-            '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
-        ];
-
+        static $map = ['۰'=>'0','۱'=>'1','۲'=>'2','۳'=>'3','۴'=>'4','۵'=>'5','۶'=>'6','۷'=>'7','۸'=>'8','۹'=>'9'];
         return strtr($input, $map);
+    }
+
+    // ────────────────── New: Generic form‑input sanitizers ────────────────────
+
+    /**
+     * Removes tags, control chars, condenses whitespace, enforces length.
+     */
+    public static function sanitizePlainText(string $input, int $maxLength = 255): string
+    {
+        $input = trim($input);
+        $input = self::convertPersianNumbersToEnglish($input);
+        $input = preg_replace('/[\x00-\x1F\x7F]/u', '', $input); // control chars
+        $input = strip_tags($input);
+        $input = preg_replace('/\s+/u', ' ', $input);
+        return mb_substr($input, 0, $maxLength, 'UTF-8');
+    }
+
+    /**
+     * Sanitises human names – letters, spaces, apostrophes & hyphens only.
+     */
+    public static function sanitizePersonName(string $input, int $maxLength = 100): string
+    {
+        $input = self::sanitizePlainText($input, $maxLength);
+        $input = preg_replace("/[^\p{L}\s'\-]/u", '', $input);
+        $input = preg_replace('/\s{2,}/u', ' ', $input);
+        return trim($input);
+    }
+
+    /**
+     * Escapes a string for safe insertion into HTML context.
+     */
+    public static function escapeHtml(string $input): string
+    {
+        return htmlspecialchars($input, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+
+    /**
+     * Allows only digits (Persian & English) – useful for numeric form fields.
+     */
+    public static function sanitizeNumericInput(string $input): string
+    {
+        $input = self::convertPersianNumbersToEnglish($input);
+        return preg_replace('/[^0-9]/', '', $input);
     }
 
     // ───────────────────────────── Condition checks ─────────────────────────────
@@ -90,20 +115,14 @@ final class StringManager
     public static function containsArray(string $input, array $array, bool $all = false): bool
     {
         $foundCount = 0;
-
         foreach ($array as $needle) {
             if (str_contains($input, $needle)) {
                 ++$foundCount;
-
-                if (!$all) {
-                    return true;
-                }
+                if (!$all) return true;
             } elseif ($all) {
-                // Early‑exit for “all” option.
                 return false;
             }
         }
-
         return $all ? $foundCount === count($array) : false;
     }
 
@@ -146,10 +165,7 @@ final class StringManager
 
     public static function validateUuid(string $input): bool
     {
-        return (bool) preg_match(
-            '/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i',
-            $input
-        );
+        return (bool) preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i', $input);
     }
 
     // ──────────────────────────── String mutations ─────────────────────────────
@@ -172,14 +188,8 @@ final class StringManager
 
     public static function truncate(string $input, int $maxChars, string $ellipsis = '...'): string
     {
-        if ($maxChars < 1) {
-            return '';
-        }
-
-        if (mb_strlen($input, 'UTF-8') <= $maxChars) {
-            return $input;
-        }
-
+        if ($maxChars < 1) return '';
+        if (mb_strlen($input, 'UTF-8') <= $maxChars) return $input;
         $truncated = rtrim(mb_substr($input, 0, $maxChars, 'UTF-8'));
         return $truncated . $ellipsis;
     }
@@ -221,24 +231,19 @@ final class StringManager
         $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $maxIndex   = strlen($characters) - 1;
         $result     = '';
-
         for ($i = 0; $i < $length; ++$i) {
             $result .= $characters[random_int(0, $maxIndex)];
         }
-
         return $result;
     }
 
-    /**
-     * @throws RandomException
-     */
+    /** @throws RandomException */
     public static function generateUuidV4(): string
     {
         $data    = random_bytes(16);
-        $data[6] = chr(ord($data[6]) & 0x0F | 0x40); // version 4
-        $data[8] = chr(ord($data[8]) & 0x3F | 0x80); // variant
+        $data[6] = chr(ord($data[6]) & 0x0F | 0x40);
+        $data[8] = chr(ord($data[8]) & 0x3F | 0x80);
         $hex     = bin2hex($data);
-
         return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split($hex, 4));
     }
 
@@ -246,16 +251,13 @@ final class StringManager
 
     public static function extractEmails(string $input): array
     {
-        preg_match_all('/[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}/i', $input, $matches);
-        return $matches[0];
+        preg_match_all('/[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}/i', $input, $m);
+        return $m[0];
     }
 
     public static function identifyLoginFieldType(string $input): string
     {
-        if (filter_var($input, FILTER_VALIDATE_EMAIL)) {
-            return 'email';
-        }
-
+        if (filter_var($input, FILTER_VALIDATE_EMAIL)) return 'email';
         return preg_match('/^\+?\d{10,15}$/', $input) ? 'phone_number' : 'username';
     }
 
@@ -336,9 +338,7 @@ final class StringManager
     public static function applyEach(array $array, callable $callable, ?int $limit = null): string
     {
         $result = array_map($callable, $array);
-        if ($limit !== null) {
-            $result = array_slice($result, 0, $limit);
-        }
+        if ($limit !== null) $result = array_slice($result, 0, $limit);
         return implode(' ', $result);
     }
 
@@ -382,9 +382,6 @@ final class StringManager
         return round($percent, 1);
     }
 
-    /**
-     * Returns $trueValue when $condition is truthy, otherwise $falseValue.
-     */
     public static function conditionalOutput(bool $condition, string $trueValue, string $falseValue = ''): string
     {
         return $condition ? $trueValue : $falseValue;
