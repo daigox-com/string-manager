@@ -28,7 +28,7 @@ final class StringManager
 
     public static function sanitizeUsername(string $input, bool $toLowerCase = true): string
     {
-        $input = self::convertPersianNumbersToEnglish($input);
+        $input = self::convertPersianAndArabicNumbersToEnglish($input);
         $input = preg_replace('/\s+/u', '_', $input);
         $input = preg_replace('/\W/u', '', $input);
         $input = preg_replace('/_{2,}/u', '_', $input);
@@ -40,13 +40,13 @@ final class StringManager
     /** Password sanitiser: converts Persian digits → English & lower‑cases. */
     public static function sanitizePassword(string $input): string
     {
-        return mb_strtolower(self::convertPersianNumbersToEnglish($input), 'UTF-8');
+        return mb_strtolower(self::convertPersianAndArabicNumbersToEnglish($input), 'UTF-8');
     }
 
     /** SEO‑friendly slug generator. */
     public static function sanitizeSlug(string $input, bool $toLowerCase = true): string
     {
-        $input = self::convertPersianNumbersToEnglish($input);
+        $input = self::convertPersianAndArabicNumbersToEnglish($input);
         $input = preg_replace('/^\d+/u', '', $input);
         $input = preg_replace('/[^\p{L}\p{N}\-]+/u', '-', $input);
         $input = preg_replace('/-{2,}/u', '-', $input);
@@ -62,6 +62,27 @@ final class StringManager
         return strtr($input, $map);
     }
 
+
+    /** Converts Arabic digits to English digits within a string. */
+    public static function convertArabicNumbersToEnglish(string $input): string
+    {
+        static $map = ['٠'=>'0','١'=>'1','٢'=>'2','٣'=>'3','٤'=>'4','٥'=>'5','٦'=>'6','٧'=>'7','٨'=>'8','٩'=>'9'];
+        return strtr($input, $map);
+    }
+
+
+    /** Converts both Persian and Arabic digits to English digits within a string. */
+    public static function convertPersianAndArabicNumbersToEnglish(string $input): string
+    {
+        static $map = [
+            // Persian digits
+            '۰'=>'0', '۱'=>'1', '۲'=>'2', '۳'=>'3', '۴'=>'4', '۵'=>'5', '۶'=>'6', '۷'=>'7', '۸'=>'8', '۹'=>'9',
+            // Arabic digits
+            '٠'=>'0', '١'=>'1', '٢'=>'2', '٣'=>'3', '٤'=>'4', '٥'=>'5', '٦'=>'6', '٧'=>'7', '٨'=>'8', '٩'=>'9'
+        ];
+        return strtr($input, $map);
+    }
+    
     // ────────────────── New: Generic form‑input sanitizers ────────────────────
 
     /**
@@ -70,7 +91,7 @@ final class StringManager
     public static function sanitizePlainText(string $input, int $maxLength = 255): string
     {
         $input = trim($input);
-        $input = self::convertPersianNumbersToEnglish($input);
+        $input = self::convertPersianAndArabicNumbersToEnglish($input);
         $input = preg_replace('/[\x00-\x1F\x7F]/u', '', $input); // control chars
         $input = strip_tags($input);
         $input = preg_replace('/\s+/u', ' ', $input);
@@ -101,7 +122,7 @@ final class StringManager
      */
     public static function sanitizeNumericInput(string $input): string
     {
-        $input = self::convertPersianNumbersToEnglish($input);
+        $input = self::convertPersianAndArabicNumbersToEnglish($input);
         return preg_replace('/[^0-9]/', '', $input);
     }
 
