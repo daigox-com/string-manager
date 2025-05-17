@@ -180,6 +180,24 @@ final class StringManager
         return strtr($input, $map);
     }
     
+    /** Converts all Unicode digits to English digits within a string. */
+    public static function convertAllUnicodeNumbersToEnglish(string $input): string
+    {
+        $input = self::convertPersianAndArabicNumbersToEnglish($input);
+        $input = self::convertMyanmarNumbersToEnglish($input);
+        $input = self::convertOriyaNumbersToEnglish($input);
+        $input = self::convertTamilNumbersToEnglish($input);
+        $input = self::convertTeluguNumbersToEnglish($input);
+        $input = self::convertTibetanNumbersToEnglish($input);
+        $input = self::convertMongolianNumbersToEnglish($input);
+        
+        return preg_replace('/\p{N}+/u', function($matches) {
+            return preg_replace_callback('/\p{N}/u', function($digit) {
+                return (string)IntlChar::digit($digit[0]);
+            }, $matches[0]);
+        }, $input);
+    }
+    
     // ────────────────── New: Generic form‑input sanitizers ────────────────────
 
     /**
