@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace Daigox\StringManager;
 
 use Random\RandomException;
-
+use InvalidArgumentException;
 /**
  * Class StringManager
  *
@@ -37,11 +37,50 @@ final class StringManager
         return $toLowerCase ? mb_strtolower($input, 'UTF-8') : (string) $input;
     }
 
-    /** Password sanitiser: converts Persian digits → English & lower‑cases. */
-    public static function sanitizePassword(string $input): string
+    /**
+     * Password normaliser – Persian/Arabic digits ➜ ASCII, NFKC-fold,
+     * strips all control chars except ZWJ/ZWNJ, lower-cases letters.
+     *
+     * ‼️  IMPORTANT: call the same method both at **sign-up** and **sign-in**.
+     *
+     * @throws InvalidArgumentException when input is too long or empty after cleaning
+     */
+    public static function sanitizePassword(
+        string $raw,
+        int    $maxBytesUtf8          = 1024,
+        bool   $trimAsciiWhitespace   = true,
+        bool   $mapLocalDigitsToAscii = true,
+        bool   $toLowerCase           = true
+    ): string
     {
-        return mb_strtolower(self::convertPersianAndArabicNumbersToEnglish($input), 'UTF-8');
+        if (strlen($raw) > $maxBytesUtf8) {
+            throw new \InvalidArgumentException('Password too long');
+        }
+
+        if ($trimAsciiWhitespace) {
+            $raw = preg_replace('/^[\x09\x0A\x0D\x20]+|[\x09\x0A\x0D\x20]+$/u', '', $raw);
+        }
+        if ($mapLocalDigitsToAscii) {
+            $raw = strtr($raw, [
+                '۰'=>'0','۱'=>'1','۲'=>'2','۳'=>'3','۴'=>'4',
+                '۵'=>'5','۶'=>'6','۷'=>'7','۸'=>'8','۹'=>'9',
+                '٠'=>'0','١'=>'1','٢'=>'2','٣'=>'3','٤'=>'4',
+                '٥'=>'5','٦'=>'6','٧'=>'7','٨'=>'8','٩'=>'9',
+            ]);
+        }
+        if (!\Normalizer::isNormalized($raw, \Normalizer::FORM_KC)) {
+            $raw = \Normalizer::normalize($raw, \Normalizer::FORM_KC);
+        }
+        $raw = preg_replace('/[\p{C}&&[^\x{200C}\x{200D}]]/u', '', $raw);
+        if ($toLowerCase) {
+            $raw = mb_strtolower($raw, 'UTF-8');
+        }
+        if ($raw === '') {
+            throw new \InvalidArgumentException('Password became empty after normalisation');
+        }
+        return $raw;
     }
+
 
     /** SEO‑friendly slug generator. */
     public static function sanitizeSlug(string $input, bool $toLowerCase = true): string
@@ -179,7 +218,7 @@ final class StringManager
         ];
         return strtr($input, $map);
     }
-    
+
     /** Converts all Unicode digits to English digits within a string. */
     public static function convertAllUnicodeNumbersToEnglish(string $input): string
     {
