@@ -1,6 +1,6 @@
 <?php
 
-namespace DaigoxCom\String;
+namespace DaigoxCom\StringManager;
 
 use InvalidArgumentException;
 use Random\RandomException;
