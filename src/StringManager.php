@@ -1,16 +1,19 @@
 <?php
 
-namespace DaigoxCom\StringManager;
+namespace Daigox\StringManager;
 
+use DateTime;
 use InvalidArgumentException;
+use Normalizer;
 use Random\RandomException;
+use Transliterator;
 
 /**
  * Ultimate String Manager
- * 
+ *
  * The most comprehensive string manipulation library with full UTF-8 support,
  * advanced text processing, multilingual capabilities, and extensive utilities.
- * 
+ *
  * @author DaigoX.com
  * @license MIT
  * @version 2.0.0
@@ -19,7 +22,7 @@ class StringManager
 {
     // Encoding
     const DEFAULT_ENCODING = 'UTF-8';
-    
+
     // Common regex patterns
     const PATTERN_EMAIL = '/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/';
     const PATTERN_URL = '/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/';
@@ -37,12 +40,14 @@ class StringManager
     const PATTERN_PASSWORD_STRONG = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/';
     const PATTERN_HASHTAG = '/#[a-zA-Z0-9_]+/';
     const PATTERN_MENTION = '/@[a-zA-Z0-9_]+/';
-    
+
     // Prevent instantiation
-    private function __construct() {}
-    
+    private function __construct()
+    {
+    }
+
     // ============================= Core String Operations =============================
-    
+
     /**
      * Get string length (UTF-8 safe)
      */
@@ -50,7 +55,7 @@ class StringManager
     {
         return mb_strlen($string, self::DEFAULT_ENCODING);
     }
-    
+
     /**
      * Get byte length
      */
@@ -58,7 +63,7 @@ class StringManager
     {
         return strlen($string);
     }
-    
+
     /**
      * Substring extraction (UTF-8 safe)
      */
@@ -66,7 +71,7 @@ class StringManager
     {
         return mb_substr($string, $start, $length, self::DEFAULT_ENCODING);
     }
-    
+
     /**
      * Get character at position
      */
@@ -74,7 +79,7 @@ class StringManager
     {
         return mb_substr($string, $position, 1, self::DEFAULT_ENCODING);
     }
-    
+
     /**
      * String position search (UTF-8 safe)
      */
@@ -82,7 +87,7 @@ class StringManager
     {
         return mb_strpos($haystack, $needle, $offset, self::DEFAULT_ENCODING);
     }
-    
+
     /**
      * Last position search (UTF-8 safe)
      */
@@ -90,7 +95,7 @@ class StringManager
     {
         return mb_strrpos($haystack, $needle, $offset, self::DEFAULT_ENCODING);
     }
-    
+
     /**
      * Count occurrences of substring
      */
@@ -98,9 +103,9 @@ class StringManager
     {
         return mb_substr_count($haystack, $needle, self::DEFAULT_ENCODING);
     }
-    
+
     // ============================= Case Conversion =============================
-    
+
     /**
      * Convert to lowercase (UTF-8 safe)
      */
@@ -108,7 +113,7 @@ class StringManager
     {
         return mb_strtolower($string, self::DEFAULT_ENCODING);
     }
-    
+
     /**
      * Convert to uppercase (UTF-8 safe)
      */
@@ -116,7 +121,7 @@ class StringManager
     {
         return mb_strtoupper($string, self::DEFAULT_ENCODING);
     }
-    
+
     /**
      * Convert to title case
      */
@@ -124,7 +129,7 @@ class StringManager
     {
         return mb_convert_case($string, MB_CASE_TITLE, self::DEFAULT_ENCODING);
     }
-    
+
     /**
      * Capitalize first letter
      */
@@ -133,7 +138,7 @@ class StringManager
         if (empty($string)) return $string;
         return self::upper(self::substring($string, 0, 1)) . self::substring($string, 1);
     }
-    
+
     /**
      * Capitalize each word
      */
@@ -141,7 +146,7 @@ class StringManager
     {
         return preg_replace_callback('/\b\w/u', fn($m) => self::upper($m[0]), $string);
     }
-    
+
     /**
      * Convert to sentence case
      */
@@ -150,22 +155,22 @@ class StringManager
         $string = self::lower($string);
         return preg_replace_callback('/([.!?]\s*)(\w)/u', fn($m) => $m[1] . self::upper($m[2]), self::capitalize($string));
     }
-    
+
     /**
      * Swap case
      */
     public static function swapCase(string $string): string
     {
-        return preg_replace_callback('/\p{L}/u', function($match) {
+        return preg_replace_callback('/\p{L}/u', function ($match) {
             $char = $match[0];
-            return mb_strtolower($char, self::DEFAULT_ENCODING) === $char 
-                ? mb_strtoupper($char, self::DEFAULT_ENCODING) 
+            return mb_strtolower($char, self::DEFAULT_ENCODING) === $char
+                ? mb_strtoupper($char, self::DEFAULT_ENCODING)
                 : mb_strtolower($char, self::DEFAULT_ENCODING);
         }, $string);
     }
-    
+
     // ============================= Case Formats =============================
-    
+
     /**
      * Convert to camelCase
      */
@@ -177,7 +182,7 @@ class StringManager
         $string = str_replace(' ', '', $string);
         return lcfirst($string);
     }
-    
+
     /**
      * Convert to PascalCase (StudlyCase)
      */
@@ -185,7 +190,7 @@ class StringManager
     {
         return ucfirst(self::camelCase($string));
     }
-    
+
     /**
      * Convert to snake_case
      */
@@ -195,7 +200,7 @@ class StringManager
         $string = preg_replace('/(.)(?=[A-Z])/u', '$1_', $string);
         return self::lower($string);
     }
-    
+
     /**
      * Convert to kebab-case (dash-case)
      */
@@ -203,7 +208,7 @@ class StringManager
     {
         return str_replace('_', '-', self::snakeCase($string));
     }
-    
+
     /**
      * Convert to CONSTANT_CASE
      */
@@ -211,7 +216,7 @@ class StringManager
     {
         return self::upper(self::snakeCase($string));
     }
-    
+
     /**
      * Convert to dot.case
      */
@@ -219,7 +224,7 @@ class StringManager
     {
         return str_replace('_', '.', self::snakeCase($string));
     }
-    
+
     /**
      * Convert to Train-Case (HTTP-Header-Case)
      */
@@ -228,7 +233,7 @@ class StringManager
         $string = self::pascalCase($string);
         return preg_replace('/(?<!^)(?=[A-Z])/u', '-', $string);
     }
-    
+
     /**
      * Convert to colon:case
      */
@@ -236,7 +241,7 @@ class StringManager
     {
         return str_replace('_', ':', self::snakeCase($string));
     }
-    
+
     /**
      * Convert to path/case
      */
@@ -244,9 +249,9 @@ class StringManager
     {
         return str_replace('_', '/', self::snakeCase($string));
     }
-    
+
     // ============================= Trimming & Padding =============================
-    
+
     /**
      * Trim whitespace or specified characters
      */
@@ -254,7 +259,7 @@ class StringManager
     {
         return trim($string, $characters);
     }
-    
+
     /**
      * Left trim
      */
@@ -262,7 +267,7 @@ class StringManager
     {
         return ltrim($string, $characters);
     }
-    
+
     /**
      * Right trim
      */
@@ -270,7 +275,7 @@ class StringManager
     {
         return rtrim($string, $characters);
     }
-    
+
     /**
      * Trim consecutive spaces
      */
@@ -278,7 +283,7 @@ class StringManager
     {
         return preg_replace('/\s+/', ' ', trim($string));
     }
-    
+
     /**
      * Pad string
      */
@@ -286,7 +291,7 @@ class StringManager
     {
         return str_pad($string, $length, $padString, $padType);
     }
-    
+
     /**
      * Pad left
      */
@@ -294,15 +299,15 @@ class StringManager
     {
         return self::pad($string, $length, $padString, STR_PAD_LEFT);
     }
-    
+
     /**
      * Pad right
      */
     public static function padRight(string $string, int $length, string $padString = ' '): string
     {
-        return self::pad($string, $length, $padString, STR_PAD_RIGHT);
+        return self::pad($string, $length, $padString);
     }
-    
+
     /**
      * Pad both sides
      */
@@ -310,7 +315,7 @@ class StringManager
     {
         return self::pad($string, $length, $padString, STR_PAD_BOTH);
     }
-    
+
     /**
      * Zero pad number
      */
@@ -318,9 +323,9 @@ class StringManager
     {
         return str_pad((string)$number, $length, '0', STR_PAD_LEFT);
     }
-    
+
     // ============================= String Manipulation =============================
-    
+
     /**
      * Repeat string
      */
@@ -328,7 +333,7 @@ class StringManager
     {
         return str_repeat($string, max(0, $times));
     }
-    
+
     /**
      * Reverse string (UTF-8 safe)
      */
@@ -337,7 +342,7 @@ class StringManager
         preg_match_all('/./us', $string, $matches);
         return implode('', array_reverse($matches[0]));
     }
-    
+
     /**
      * Shuffle string characters
      */
@@ -347,7 +352,7 @@ class StringManager
         shuffle($chars);
         return implode('', $chars);
     }
-    
+
     /**
      * Replace string occurrences
      */
@@ -356,7 +361,7 @@ class StringManager
         if ($limit === -1) {
             return str_replace($search, $replace, $subject);
         }
-        
+
         $pos = 0;
         $count = 0;
         while (($pos = strpos($subject, $search, $pos)) !== false && $count < $limit) {
@@ -364,10 +369,10 @@ class StringManager
             $pos += strlen($replace);
             $count++;
         }
-        
+
         return $subject;
     }
-    
+
     /**
      * Replace multiple strings
      */
@@ -375,7 +380,7 @@ class StringManager
     {
         return str_replace(array_keys($replacements), array_values($replacements), $subject);
     }
-    
+
     /**
      * Replace using regex
      */
@@ -383,7 +388,7 @@ class StringManager
     {
         return preg_replace($pattern, $replacement, $subject, $limit);
     }
-    
+
     /**
      * Replace using callback
      */
@@ -391,7 +396,7 @@ class StringManager
     {
         return preg_replace_callback($pattern, $callback, $subject, $limit);
     }
-    
+
     /**
      * Remove string occurrences
      */
@@ -399,7 +404,7 @@ class StringManager
     {
         return str_replace($search, '', $subject);
     }
-    
+
     /**
      * Insert string at position
      */
@@ -407,7 +412,7 @@ class StringManager
     {
         return self::substring($string, 0, $position) . $insert . self::substring($string, $position);
     }
-    
+
     /**
      * Wrap string
      */
@@ -416,22 +421,22 @@ class StringManager
         $after = $after ?? $before;
         return $before . $string . $after;
     }
-    
+
     /**
      * Unwrap string
      */
     public static function unwrap(string $string, string $before, ?string $after = null): string
     {
         $after = $after ?? $before;
-        
+
         if (self::startsWith($string, $before) && self::endsWith($string, $after)) {
             $string = self::substring($string, self::length($before));
             $string = self::substring($string, 0, -self::length($after));
         }
-        
+
         return $string;
     }
-    
+
     /**
      * Quote string
      */
@@ -439,7 +444,7 @@ class StringManager
     {
         return self::wrap($string, $style);
     }
-    
+
     /**
      * Unquote string
      */
@@ -450,9 +455,9 @@ class StringManager
         }
         return $string;
     }
-    
+
     // ============================= Truncation =============================
-    
+
     /**
      * Truncate string
      */
@@ -461,24 +466,24 @@ class StringManager
         if (self::length($string) <= $length) {
             return $string;
         }
-        
+
         return self::substring($string, 0, $length - self::length($suffix)) . $suffix;
     }
-    
+
     /**
      * Truncate preserving words
      */
     public static function truncateWords(string $string, int $words, string $suffix = '...'): string
     {
         $wordArray = explode(' ', $string);
-        
+
         if (count($wordArray) <= $words) {
             return $string;
         }
-        
+
         return implode(' ', array_slice($wordArray, 0, $words)) . $suffix;
     }
-    
+
     /**
      * Truncate from middle
      */
@@ -487,15 +492,15 @@ class StringManager
         if (self::length($string) <= $length) {
             return $string;
         }
-        
+
         $sepLength = self::length($separator);
         $charsToShow = $length - $sepLength;
-        $frontChars = (int) ceil($charsToShow / 2);
-        $backChars = (int) floor($charsToShow / 2);
-        
+        $frontChars = (int)ceil($charsToShow / 2);
+        $backChars = (int)floor($charsToShow / 2);
+
         return self::substring($string, 0, $frontChars) . $separator . self::substring($string, -$backChars);
     }
-    
+
     /**
      * Truncate on word boundary
      */
@@ -504,19 +509,19 @@ class StringManager
         if (self::length($string) <= $length) {
             return $string;
         }
-        
+
         $truncated = self::substring($string, 0, $length - self::length($suffix));
         $lastSpace = strrpos($truncated, ' ');
-        
+
         if ($lastSpace !== false) {
             $truncated = self::substring($truncated, 0, $lastSpace);
         }
-        
+
         return $truncated . $suffix;
     }
-    
+
     // ============================= String Analysis =============================
-    
+
     /**
      * Check if string contains substring
      */
@@ -525,10 +530,10 @@ class StringManager
         if ($caseSensitive) {
             return str_contains($haystack, $needle);
         }
-        
+
         return mb_stripos($haystack, $needle, 0, self::DEFAULT_ENCODING) !== false;
     }
-    
+
     /**
      * Check if string contains any of the needles
      */
@@ -539,10 +544,10 @@ class StringManager
                 return true;
             }
         }
-        
+
         return false;
     }
-    
+
     /**
      * Check if string contains all needles
      */
@@ -553,10 +558,10 @@ class StringManager
                 return false;
             }
         }
-        
+
         return true;
     }
-    
+
     /**
      * Check if string starts with substring
      */
@@ -565,14 +570,14 @@ class StringManager
         if ($needle === '') {
             return true;
         }
-        
+
         if ($caseSensitive) {
             return str_starts_with($haystack, $needle);
         }
-        
+
         return mb_stripos($haystack, $needle, 0, self::DEFAULT_ENCODING) === 0;
     }
-    
+
     /**
      * Check if string starts with any of the needles
      */
@@ -583,10 +588,10 @@ class StringManager
                 return true;
             }
         }
-        
+
         return false;
     }
-    
+
     /**
      * Check if string ends with substring
      */
@@ -595,17 +600,17 @@ class StringManager
         if ($needle === '') {
             return true;
         }
-        
+
         if ($caseSensitive) {
             return str_ends_with($haystack, $needle);
         }
-        
+
         $haystack = self::lower($haystack);
         $needle = self::lower($needle);
-        
+
         return str_ends_with($haystack, $needle);
     }
-    
+
     /**
      * Check if string ends with any of the needles
      */
@@ -616,10 +621,10 @@ class StringManager
                 return true;
             }
         }
-        
+
         return false;
     }
-    
+
     /**
      * Check if string matches pattern
      */
@@ -627,7 +632,7 @@ class StringManager
     {
         return preg_match($pattern, $string) === 1;
     }
-    
+
     /**
      * Get all matches
      */
@@ -636,7 +641,7 @@ class StringManager
         preg_match_all($pattern, $string, $matches);
         return $matches[0] ?? [];
     }
-    
+
     /**
      * Check if string is empty
      */
@@ -644,7 +649,7 @@ class StringManager
     {
         return $string === '';
     }
-    
+
     /**
      * Check if string is blank (empty or whitespace only)
      */
@@ -652,7 +657,7 @@ class StringManager
     {
         return trim($string) === '';
     }
-    
+
     /**
      * Check if string is numeric
      */
@@ -660,7 +665,7 @@ class StringManager
     {
         return is_numeric($string);
     }
-    
+
     /**
      * Check if string is integer
      */
@@ -668,23 +673,23 @@ class StringManager
     {
         return preg_match('/^-?\d+$/', $string) === 1;
     }
-    
+
     /**
      * Check if string is float
      */
     public static function isFloat(string $string): bool
     {
-        return is_numeric($string) && strpos($string, '.') !== false;
+        return is_numeric($string) && str_contains($string, '.');
     }
-    
+
     /**
      * Check if string is alphabetic
      */
     public static function isAlpha(string $string): bool
     {
-        return preg_match('/^[\p{L}]+$/u', $string) === 1;
+        return preg_match('/^\p{L}+$/u', $string) === 1;
     }
-    
+
     /**
      * Check if string is alphanumeric
      */
@@ -692,7 +697,7 @@ class StringManager
     {
         return preg_match('/^[\p{L}\p{N}]+$/u', $string) === 1;
     }
-    
+
     /**
      * Check if string is lowercase
      */
@@ -700,7 +705,7 @@ class StringManager
     {
         return $string === self::lower($string);
     }
-    
+
     /**
      * Check if string is uppercase
      */
@@ -708,7 +713,7 @@ class StringManager
     {
         return $string === self::upper($string);
     }
-    
+
     /**
      * Check if string is title case
      */
@@ -716,7 +721,7 @@ class StringManager
     {
         return $string === self::title($string);
     }
-    
+
     /**
      * Check if string is valid JSON
      */
@@ -725,7 +730,7 @@ class StringManager
         json_decode($string);
         return json_last_error() === JSON_ERROR_NONE;
     }
-    
+
     /**
      * Check if string is valid XML
      */
@@ -735,7 +740,7 @@ class StringManager
         $doc = simplexml_load_string($string);
         return $doc !== false;
     }
-    
+
     /**
      * Check if string is valid HTML
      */
@@ -743,7 +748,7 @@ class StringManager
     {
         return $string !== strip_tags($string);
     }
-    
+
     /**
      * Check if string is valid base64
      */
@@ -751,7 +756,7 @@ class StringManager
     {
         return base64_encode(base64_decode($string, true)) === $string;
     }
-    
+
     /**
      * Check if string is valid hex
      */
@@ -759,7 +764,7 @@ class StringManager
     {
         return preg_match('/^[0-9a-fA-F]+$/', $string) === 1;
     }
-    
+
     /**
      * Check if string is binary
      */
@@ -767,7 +772,7 @@ class StringManager
     {
         return preg_match('/^[01]+$/', $string) === 1;
     }
-    
+
     /**
      * Check if string is ASCII
      */
@@ -775,7 +780,7 @@ class StringManager
     {
         return mb_check_encoding($string, 'ASCII');
     }
-    
+
     /**
      * Check if string is UTF-8
      */
@@ -783,7 +788,7 @@ class StringManager
     {
         return mb_check_encoding($string, 'UTF-8');
     }
-    
+
     /**
      * Check if string is palindrome
      */
@@ -792,14 +797,14 @@ class StringManager
         if ($ignoreSpaces) {
             $string = str_replace(' ', '', $string);
         }
-        
+
         if ($ignoreCase) {
             $string = self::lower($string);
         }
-        
+
         return $string === self::reverse($string);
     }
-    
+
     /**
      * Check if string is anagram
      */
@@ -809,23 +814,23 @@ class StringManager
             $string1 = str_replace(' ', '', $string1);
             $string2 = str_replace(' ', '', $string2);
         }
-        
+
         if ($ignoreCase) {
             $string1 = self::lower($string1);
             $string2 = self::lower($string2);
         }
-        
+
         $chars1 = str_split($string1);
         $chars2 = str_split($string2);
-        
+
         sort($chars1);
         sort($chars2);
-        
+
         return $chars1 === $chars2;
     }
-    
+
     // ============================= Extraction =============================
-    
+
     /**
      * Extract substring between delimiters
      */
@@ -835,22 +840,22 @@ class StringManager
         if ($startPos === false) {
             return null;
         }
-        
+
         $startPos += self::length($start);
-        
+
         if ($greedy) {
             $endPos = self::lastIndexOf($string, $end, $startPos);
         } else {
             $endPos = self::indexOf($string, $end, $startPos);
         }
-        
+
         if ($endPos === false) {
             return null;
         }
-        
+
         return self::substring($string, $startPos, $endPos - $startPos);
     }
-    
+
     /**
      * Extract all substrings between delimiters
      */
@@ -858,80 +863,80 @@ class StringManager
     {
         $results = [];
         $offset = 0;
-        
+
         while (($startPos = self::indexOf($string, $start, $offset)) !== false) {
             $startPos += self::length($start);
             $endPos = self::indexOf($string, $end, $startPos);
-            
+
             if ($endPos === false) {
                 break;
             }
-            
+
             $results[] = self::substring($string, $startPos, $endPos - $startPos);
             $offset = $endPos + self::length($end);
         }
-        
+
         return $results;
     }
-    
+
     /**
      * Extract substring before delimiter
      */
     public static function before(string $string, string $delimiter): string
     {
         $pos = self::indexOf($string, $delimiter);
-        
+
         if ($pos === false) {
             return $string;
         }
-        
+
         return self::substring($string, 0, $pos);
     }
-    
+
     /**
      * Extract substring before last occurrence
      */
     public static function beforeLast(string $string, string $delimiter): string
     {
         $pos = self::lastIndexOf($string, $delimiter);
-        
+
         if ($pos === false) {
             return $string;
         }
-        
+
         return self::substring($string, 0, $pos);
     }
-    
+
     /**
      * Extract substring after delimiter
      */
     public static function after(string $string, string $delimiter): string
     {
         $pos = self::indexOf($string, $delimiter);
-        
+
         if ($pos === false) {
             return '';
         }
-        
+
         return self::substring($string, $pos + self::length($delimiter));
     }
-    
+
     /**
      * Extract substring after last occurrence
      */
     public static function afterLast(string $string, string $delimiter): string
     {
         $pos = self::lastIndexOf($string, $delimiter);
-        
+
         if ($pos === false) {
             return '';
         }
-        
+
         return self::substring($string, $pos + self::length($delimiter));
     }
-    
+
     // ============================= Splitting & Joining =============================
-    
+
     /**
      * Split string by delimiter
      */
@@ -940,10 +945,10 @@ class StringManager
         if ($delimiter === '') {
             return self::toArray($string);
         }
-        
+
         return explode($delimiter, $string, $limit);
     }
-    
+
     /**
      * Split string by regex
      */
@@ -951,7 +956,7 @@ class StringManager
     {
         return preg_split($pattern, $string, $limit, $flags | PREG_SPLIT_NO_EMPTY);
     }
-    
+
     /**
      * Split string into array of characters
      */
@@ -959,7 +964,7 @@ class StringManager
     {
         return preg_split('//u', $string, -1, PREG_SPLIT_NO_EMPTY);
     }
-    
+
     /**
      * Split string into chunks
      */
@@ -968,31 +973,31 @@ class StringManager
         if ($length <= 0) {
             throw new InvalidArgumentException('Chunk length must be greater than 0');
         }
-        
+
         $chunks = [];
         $stringLength = self::length($string);
-        
+
         for ($i = 0; $i < $stringLength; $i += $length) {
             $chunks[] = self::substring($string, $i, $length);
         }
-        
+
         return $chunks;
     }
-    
+
     /**
      * Split string into lines
      */
     public static function lines(string $string, bool $removeEmpty = false): array
     {
         $lines = preg_split('/\r\n|\r|\n/', $string);
-        
+
         if ($removeEmpty) {
             return array_filter($lines, fn($line) => $line !== '');
         }
-        
+
         return $lines;
     }
-    
+
     /**
      * Split string into words
      */
@@ -1000,7 +1005,7 @@ class StringManager
     {
         return preg_split($pattern, trim($string), -1, PREG_SPLIT_NO_EMPTY);
     }
-    
+
     /**
      * Split string into sentences
      */
@@ -1008,7 +1013,7 @@ class StringManager
     {
         return preg_split('/(?<=[.!?])\s+/', $string, -1, PREG_SPLIT_NO_EMPTY);
     }
-    
+
     /**
      * Join array elements
      */
@@ -1016,7 +1021,7 @@ class StringManager
     {
         return implode($glue, $pieces);
     }
-    
+
     /**
      * Join with different last separator
      */
@@ -1025,13 +1030,13 @@ class StringManager
         if (count($pieces) <= 1) {
             return implode('', $pieces);
         }
-        
+
         $last = array_pop($pieces);
         return implode($glue, $pieces) . $lastGlue . $last;
     }
-    
+
     // ============================= Encoding & Decoding =============================
-    
+
     /**
      * Encode to base64
      */
@@ -1039,7 +1044,7 @@ class StringManager
     {
         return base64_encode($string);
     }
-    
+
     /**
      * Decode from base64
      */
@@ -1047,7 +1052,7 @@ class StringManager
     {
         return base64_decode($string, true);
     }
-    
+
     /**
      * URL encode
      */
@@ -1055,7 +1060,7 @@ class StringManager
     {
         return urlencode($string);
     }
-    
+
     /**
      * URL decode
      */
@@ -1063,7 +1068,7 @@ class StringManager
     {
         return urldecode($string);
     }
-    
+
     /**
      * Raw URL encode
      */
@@ -1071,7 +1076,7 @@ class StringManager
     {
         return rawurlencode($string);
     }
-    
+
     /**
      * Raw URL decode
      */
@@ -1079,7 +1084,7 @@ class StringManager
     {
         return rawurldecode($string);
     }
-    
+
     /**
      * HTML encode
      */
@@ -1087,7 +1092,7 @@ class StringManager
     {
         return htmlspecialchars($string, $flags, self::DEFAULT_ENCODING);
     }
-    
+
     /**
      * HTML decode
      */
@@ -1095,7 +1100,7 @@ class StringManager
     {
         return htmlspecialchars_decode($string, $flags);
     }
-    
+
     /**
      * HTML entity encode
      */
@@ -1103,7 +1108,7 @@ class StringManager
     {
         return htmlentities($string, $flags, self::DEFAULT_ENCODING);
     }
-    
+
     /**
      * HTML entity decode
      */
@@ -1111,7 +1116,7 @@ class StringManager
     {
         return html_entity_decode($string, $flags, self::DEFAULT_ENCODING);
     }
-    
+
     /**
      * Escape for JavaScript
      */
@@ -1128,7 +1133,7 @@ class StringManager
             "\x0C" => '\\f'
         ]);
     }
-    
+
     /**
      * Escape for regex
      */
@@ -1136,7 +1141,7 @@ class StringManager
     {
         return preg_quote($string, $delimiter);
     }
-    
+
     /**
      * Escape for shell
      */
@@ -1144,7 +1149,7 @@ class StringManager
     {
         return escapeshellarg($string);
     }
-    
+
     /**
      * Escape for SQL LIKE
      */
@@ -1156,7 +1161,7 @@ class StringManager
             '_' => $escape . '_'
         ]);
     }
-    
+
     /**
      * Convert to hex
      */
@@ -1164,7 +1169,7 @@ class StringManager
     {
         return bin2hex($string);
     }
-    
+
     /**
      * Convert from hex
      */
@@ -1172,7 +1177,7 @@ class StringManager
     {
         return hex2bin($hex);
     }
-    
+
     /**
      * Convert to binary
      */
@@ -1180,14 +1185,14 @@ class StringManager
     {
         $binary = '';
         $length = strlen($string);
-        
+
         for ($i = 0; $i < $length; $i++) {
             $binary .= sprintf('%08b', ord($string[$i]));
         }
-        
+
         return $binary;
     }
-    
+
     /**
      * Convert from binary
      */
@@ -1195,14 +1200,14 @@ class StringManager
     {
         $string = '';
         $chunks = str_split($binary, 8);
-        
+
         foreach ($chunks as $chunk) {
             $string .= chr(bindec($chunk));
         }
-        
+
         return $string;
     }
-    
+
     /**
      * Convert to ASCII
      */
@@ -1210,7 +1215,7 @@ class StringManager
     {
         return iconv(self::DEFAULT_ENCODING, 'ASCII//TRANSLIT//IGNORE', $string);
     }
-    
+
     /**
      * JSON encode
      */
@@ -1218,7 +1223,7 @@ class StringManager
     {
         return json_encode($data, $flags, $depth);
     }
-    
+
     /**
      * JSON decode
      */
@@ -1226,9 +1231,9 @@ class StringManager
     {
         return json_decode($json, $associative, $depth, $flags);
     }
-    
+
     // ============================= Hashing & Encryption =============================
-    
+
     /**
      * Generate MD5 hash
      */
@@ -1236,7 +1241,7 @@ class StringManager
     {
         return md5($string, $binary);
     }
-    
+
     /**
      * Generate SHA1 hash
      */
@@ -1244,7 +1249,7 @@ class StringManager
     {
         return sha1($string, $binary);
     }
-    
+
     /**
      * Generate SHA256 hash
      */
@@ -1252,7 +1257,7 @@ class StringManager
     {
         return hash('sha256', $string, $binary);
     }
-    
+
     /**
      * Generate SHA512 hash
      */
@@ -1260,7 +1265,7 @@ class StringManager
     {
         return hash('sha512', $string, $binary);
     }
-    
+
     /**
      * Generate hash with algorithm
      */
@@ -1268,7 +1273,7 @@ class StringManager
     {
         return hash($algorithm, $string, $binary);
     }
-    
+
     /**
      * Generate HMAC
      */
@@ -1276,7 +1281,7 @@ class StringManager
     {
         return hash_hmac($algorithm, $string, $key, $binary);
     }
-    
+
     /**
      * Generate CRC32
      */
@@ -1284,7 +1289,7 @@ class StringManager
     {
         return crc32($string);
     }
-    
+
     /**
      * Generate password hash
      */
@@ -1292,7 +1297,7 @@ class StringManager
     {
         return password_hash($password, $algorithm, $options);
     }
-    
+
     /**
      * Verify password hash
      */
@@ -1300,9 +1305,9 @@ class StringManager
     {
         return password_verify($password, $hash);
     }
-    
+
     // ============================= Validation =============================
-    
+
     /**
      * Validate email
      */
@@ -1310,7 +1315,7 @@ class StringManager
     {
         return filter_var($string, FILTER_VALIDATE_EMAIL) !== false;
     }
-    
+
     /**
      * Validate URL
      */
@@ -1318,7 +1323,7 @@ class StringManager
     {
         return filter_var($string, FILTER_VALIDATE_URL) !== false;
     }
-    
+
     /**
      * Validate domain
      */
@@ -1326,7 +1331,7 @@ class StringManager
     {
         return preg_match(self::PATTERN_DOMAIN, $string) === 1;
     }
-    
+
     /**
      * Validate IP address
      */
@@ -1334,7 +1339,7 @@ class StringManager
     {
         return filter_var($string, FILTER_VALIDATE_IP) !== false;
     }
-    
+
     /**
      * Validate IPv4 address
      */
@@ -1342,7 +1347,7 @@ class StringManager
     {
         return filter_var($string, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
     }
-    
+
     /**
      * Validate IPv6 address
      */
@@ -1350,7 +1355,7 @@ class StringManager
     {
         return filter_var($string, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
     }
-    
+
     /**
      * Validate MAC address
      */
@@ -1358,7 +1363,7 @@ class StringManager
     {
         return preg_match(self::PATTERN_MAC, $string) === 1;
     }
-    
+
     /**
      * Validate UUID
      */
@@ -1366,7 +1371,7 @@ class StringManager
     {
         return preg_match(self::PATTERN_UUID, $string) === 1;
     }
-    
+
     /**
      * Validate phone number
      */
@@ -1374,38 +1379,38 @@ class StringManager
     {
         return preg_match(self::PATTERN_PHONE, $string) === 1;
     }
-    
+
     /**
      * Validate credit card
      */
     public static function isCreditCard(string $string): bool
     {
         $string = preg_replace('/\D/', '', $string);
-        
+
         if (!preg_match(self::PATTERN_CREDIT_CARD, $string)) {
             return false;
         }
-        
+
         // Luhn algorithm
         $sum = 0;
         $length = strlen($string);
-        
+
         for ($i = 0; $i < $length; $i++) {
-            $digit = (int) $string[$length - $i - 1];
-            
+            $digit = (int)$string[$length - $i - 1];
+
             if ($i % 2 === 1) {
                 $digit *= 2;
                 if ($digit > 9) {
                     $digit -= 9;
                 }
             }
-            
+
             $sum += $digit;
         }
-        
+
         return $sum % 10 === 0;
     }
-    
+
     /**
      * Validate hex color
      */
@@ -1413,7 +1418,7 @@ class StringManager
     {
         return preg_match(self::PATTERN_HEX_COLOR, $string) === 1;
     }
-    
+
     /**
      * Validate RGB color
      */
@@ -1421,7 +1426,7 @@ class StringManager
     {
         return preg_match(self::PATTERN_RGB_COLOR, $string) === 1;
     }
-    
+
     /**
      * Validate slug
      */
@@ -1429,7 +1434,7 @@ class StringManager
     {
         return preg_match(self::PATTERN_SLUG, $string) === 1;
     }
-    
+
     /**
      * Validate username
      */
@@ -1437,7 +1442,7 @@ class StringManager
     {
         return preg_match(self::PATTERN_USERNAME, $string) === 1;
     }
-    
+
     /**
      * Validate strong password
      */
@@ -1445,16 +1450,16 @@ class StringManager
     {
         return preg_match(self::PATTERN_PASSWORD_STRONG, $string) === 1;
     }
-    
+
     /**
      * Validate date
      */
     public static function isDate(string $string, string $format = 'Y-m-d'): bool
     {
-        $date = \DateTime::createFromFormat($format, $string);
+        $date = DateTime::createFromFormat($format, $string);
         return $date && $date->format($format) === $string;
     }
-    
+
     /**
      * Validate time
      */
@@ -1462,7 +1467,7 @@ class StringManager
     {
         return self::isDate($string, $format);
     }
-    
+
     /**
      * Validate datetime
      */
@@ -1470,20 +1475,20 @@ class StringManager
     {
         return self::isDate($string, $format);
     }
-    
-    // ============================= Sanitization =============================
-    
+
+// ============================= Sanitization =============================
+
     /**
      * Sanitize for filename
      */
     public static function sanitizeFilename(string $filename, string $replacement = '_'): string
     {
-        $filename = preg_replace('/[^\w\s\d\-_~,;\[\]\(\)\.]/u', $replacement, $filename);
+        $filename = preg_replace('/[^\w\s\-_~,;\[\]().]/u', $replacement, $filename);
         $filename = preg_replace('/\s+/', $replacement, $filename);
         $filename = preg_replace('/' . preg_quote($replacement, '/') . '+/', $replacement, $filename);
         return trim($filename, $replacement . '.');
     }
-    
+
     /**
      * Sanitize for URL slug
      */
@@ -1495,26 +1500,26 @@ class StringManager
         $string = trim($string);
         $string = str_replace(' ', $separator, $string);
         $string = self::lower($string);
-        
+
         return $string;
     }
-    
+
     /**
      * Sanitize for username
      */
     public static function sanitizeUsername(string $username, bool $lowercase = true): string
     {
-        $username = preg_replace('/[^a-zA-Z0-9_\-\.]/', '', $username);
-        $username = preg_replace('/^[\-\._]+|[\-\._]+$/', '', $username);
-        $username = preg_replace('/[\-\._]{2,}/', '_', $username);
-        
+        $username = preg_replace('/[^a-zA-Z0-9_\-.]/', '', $username);
+        $username = trim($username, "-._");
+        $username = preg_replace('/[\-._]{2,}/', '_', $username);
+
         if ($lowercase) {
             $username = self::lower($username);
         }
-        
+
         return $username;
     }
-    
+
     /**
      * Sanitize email
      */
@@ -1522,7 +1527,7 @@ class StringManager
     {
         return filter_var($email, FILTER_SANITIZE_EMAIL);
     }
-    
+
     /**
      * Sanitize URL
      */
@@ -1530,7 +1535,7 @@ class StringManager
     {
         return filter_var($url, FILTER_SANITIZE_URL);
     }
-    
+
     /**
      * Sanitize HTML
      */
@@ -1539,11 +1544,11 @@ class StringManager
         if (empty($allowedTags)) {
             return strip_tags($html);
         }
-        
+
         $allowed = '<' . implode('><', $allowedTags) . '>';
         return strip_tags($html, $allowed);
     }
-    
+
     /**
      * Sanitize for database
      */
@@ -1551,7 +1556,7 @@ class StringManager
     {
         return addslashes($string);
     }
-    
+
     /**
      * Remove non-printable characters
      */
@@ -1559,7 +1564,7 @@ class StringManager
     {
         return preg_replace('/[\x00-\x1F\x7F]/u', '', $string);
     }
-    
+
     /**
      * Remove emoji
      */
@@ -1567,7 +1572,7 @@ class StringManager
     {
         return preg_replace('/[\x{1F600}-\x{1F64F}]|[\x{1F300}-\x{1F5FF}]|[\x{1F680}-\x{1F6FF}]|[\x{1F1E0}-\x{1F1FF}]|[\x{2600}-\x{26FF}]|[\x{2700}-\x{27BF}]/u', '', $string);
     }
-    
+
     /**
      * Normalize whitespace
      */
@@ -1575,7 +1580,7 @@ class StringManager
     {
         return preg_replace('/\s+/', ' ', trim($string));
     }
-    
+
     /**
      * Normalize line endings
      */
@@ -1583,9 +1588,305 @@ class StringManager
     {
         return str_replace(["\r\n", "\r"], $lineEnding, $string);
     }
-    
+
+    /**
+     * Sanitize phone number
+     */
+    public static function sanitizePhone(string $phone): string
+    {
+        return preg_replace('/[^0-9+\-()\s]/', '', $phone);
+    }
+
+    /**
+     * Sanitize for CSS class name
+     */
+    public static function sanitizeCssClass(string $class): string
+    {
+        $class = preg_replace('/[^a-zA-Z0-9\-_]/', '', $class);
+        $class = preg_replace('/^[0-9\-]+/', '', $class);
+        return $class;
+    }
+
+    /**
+     * Sanitize for CSS ID
+     */
+    public static function sanitizeCssId(string $id): string
+    {
+        $id = preg_replace('/[^a-zA-Z0-9\-_]/', '', $id);
+        $id = preg_replace('/^[0-9\-]+/', '', $id);
+        return $id;
+    }
+
+    /**
+     * Sanitize JSON string
+     */
+    public static function sanitizeJson(string $json): string
+    {
+        $decoded = json_decode($json, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return '';
+        }
+        return json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    /**
+     * Sanitize for XML
+     */
+    public static function sanitizeXml(string $string): string
+    {
+        return htmlspecialchars($string, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+    }
+
+    /**
+     * Sanitize credit card number
+     */
+    public static function sanitizeCreditCard(string $number): string
+    {
+        return preg_replace('/[^0-9]/', '', $number);
+    }
+
+    /**
+     * Sanitize for JavaScript
+     */
+    public static function sanitizeJs(string $string): string
+    {
+        return addcslashes($string, "\0..\37!@\177..\377");
+    }
+
+    /**
+     * Remove SQL injection patterns
+     */
+    public static function removeSqlInjection(string $string): string
+    {
+        $patterns = [
+            '/(\s|^)(union)(\s|$)/i',
+            '/(\s|^)(select)(\s|$)/i',
+            '/(\s|^)(insert)(\s|$)/i',
+            '/(\s|^)(update)(\s|$)/i',
+            '/(\s|^)(delete)(\s|$)/i',
+            '/(\s|^)(drop)(\s|$)/i',
+            '/(\s|^)(create)(\s|$)/i',
+            '/(\s|^)(alter)(\s|$)/i',
+            '/(\s|^)(exec)(\s|$)/i',
+            '/(\s|^)(execute)(\s|$)/i',
+            '/(\s|^)(script)(\s|$)/i',
+            '/(\s|^)(or)(\s|$)/i',
+            '/(\s|^)(and)(\s|$)/i',
+            '/[\'";]/',
+            '/\/\*.*?\*\//',
+            '/--.*?$/m'
+        ];
+
+        return preg_replace($patterns, '', $string);
+    }
+
+    /**
+     * Remove XSS patterns
+     */
+    public static function removeXss(string $string): string
+    {
+        $patterns = [
+            '/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/mi',
+            '/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/mi',
+            '/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/mi',
+            '/<embed\b[^<]*(?:(?!<\/embed>)<[^<]*)*<\/embed>/mi',
+            '/<applet\b[^<]*(?:(?!<\/applet>)<[^<]*)*<\/applet>/mi',
+            '/<form\b[^<]*(?:(?!<\/form>)<[^<]*)*<\/form>/mi',
+            '/javascript:/i',
+            '/vbscript:/i',
+            '/onload=/i',
+            '/onerror=/i',
+            '/onclick=/i',
+            '/onmouseover=/i',
+            '/onfocus=/i',
+            '/onblur=/i',
+            '/onchange=/i',
+            '/onsubmit=/i'
+        ];
+
+        return preg_replace($patterns, '', $string);
+    }
+
+    /**
+     * Sanitize for CSV
+     */
+    public static function sanitizeForCsv(string $string): string
+    {
+        $string = str_replace(['"', "\r", "\n"], ['""', '', ''], $string);
+        if (str_contains($string, ',') || str_contains($string, '"')) {
+            $string = '"' . $string . '"';
+        }
+        return $string;
+    }
+
+    /**
+     * Sanitize password (remove common unsafe characters)
+     */
+    public static function sanitizePassword(
+        string $raw,
+        int    $maxBytesUtf8 = 1024,
+        bool   $trimAsciiWhitespace = true,
+        bool   $mapLocalDigitsToAscii = true,
+        bool   $toLowerCase = true
+    ): string
+    {
+        if (strlen($raw) > $maxBytesUtf8) {
+            throw new InvalidArgumentException('Password too long');
+        }
+
+        if ($trimAsciiWhitespace) {
+            $raw = preg_replace('/^[\x09\x0A\x0D\x20]+|[\x09\x0A\x0D\x20]+$/u', '', $raw);
+        }
+        if ($mapLocalDigitsToAscii) {
+            $raw = strtr($raw, [
+                '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
+                '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
+                '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4',
+                '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
+            ]);
+        }
+        if (!Normalizer::isNormalized($raw, Normalizer::FORM_KC)) {
+            $raw = Normalizer::normalize($raw, Normalizer::FORM_KC);
+        }
+        $raw = preg_replace('/[\p{C}&[^\x{200C}\x{200D}]]/u', '', $raw);
+        if ($toLowerCase) {
+            $raw = mb_strtolower($raw, 'UTF-8');
+        }
+        if ($raw === '') {
+            throw new InvalidArgumentException('Password became empty after normalisation');
+        }
+        return $raw;
+    }
+
+    /**
+     * Sanitize domain name
+     */
+    public static function sanitizeDomain(string $domain): string
+    {
+        $domain = self::lower($domain);
+        $domain = preg_replace('/[^a-z0-9\-.]/', '', $domain);
+        $domain = preg_replace('/\.{2,}/', '.', $domain);
+        $domain = trim($domain, '.-');
+        return $domain;
+    }
+
+    /**
+     * Sanitize IP address
+     */
+    public static function sanitizeIp(string $ip): string
+    {
+        return filter_var($ip, FILTER_VALIDATE_IP) !== false ? $ip : '';
+    }
+
+    /**
+     * Sanitize MAC address
+     */
+    public static function sanitizeMac(string $mac): string
+    {
+        return preg_replace('/[^a-fA-F0-9:]/', '', $mac);
+    }
+
+    /**
+     * Sanitize color hex code
+     */
+    public static function sanitizeHexColor(string $color): string
+    {
+        $color = preg_replace('/[^a-fA-F0-9#]/', '', $color);
+        if (!preg_match('/^#[a-fA-F0-9]{3}$|^#[a-fA-F0-9]{6}$/', $color)) {
+            return '';
+        }
+        return self::upper($color);
+    }
+
+    /**
+     * Sanitize for regex pattern
+     */
+    public static function sanitizeRegex(string $pattern): string
+    {
+        return preg_quote($pattern, '/');
+    }
+
+    /**
+     * Sanitize base64 string
+     */
+    public static function sanitizeBase64(string $string): string
+    {
+        return preg_replace('/[^a-zA-Z0-9+\/=]/', '', $string);
+    }
+
+    /**
+     * Sanitize hash string
+     */
+    public static function sanitizeHash(string $hash): string
+    {
+        return preg_replace('/[^a-fA-F0-9]/', '', $hash);
+    }
+
+    /**
+     * Sanitize for file path
+     */
+    public static function sanitizeFilePath(string $path): string
+    {
+        $path = str_replace(['../', '..\\', '../', '..\\\\'], '', $path);
+        $path = preg_replace('/[^a-zA-Z0-9\-_.\\/\\\\]/', '', $path);
+        return $path;
+    }
+
+    /**
+     * Sanitize currency amount
+     */
+    public static function sanitizeCurrency(string $amount): string
+    {
+        return preg_replace('/[^0-9.,\-]/', '', $amount);
+    }
+
+    /**
+     * Sanitize for search query
+     */
+    public static function sanitizeSearchQuery(string $query): string
+    {
+        $query = self::removeXss($query);
+        $query = self::removeSqlInjection($query);
+        $query = self::normalizeWhitespace($query);
+        return trim($query);
+    }
+
+    /**
+     * Sanitize for attribute value
+     */
+    public static function sanitizeAttribute(string $value): string
+    {
+        return htmlspecialchars($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    }
+
+    /**
+     * Clean and validate UTF-8 string
+     */
+    public static function cleanUtf8(string $string): string
+    {
+        return mb_convert_encoding($string, 'UTF-8', 'UTF-8');
+    }
+
+    /**
+     * Remove dangerous file extensions
+     */
+    public static function sanitizeFileExtension(string $filename): string
+    {
+        $dangerousExtensions = [
+            'php', 'php3', 'php4', 'php5', 'phtml', 'asp', 'aspx', 'jsp', 'cfm',
+            'exe', 'bat', 'cmd', 'scr', 'com', 'pif', 'vbs', 'js', 'jar', 'sh'
+        ];
+
+        $extension = pathinfo($filename, PATHINFO_EXTENSION);
+        if (in_array(self::lower($extension), $dangerousExtensions)) {
+            return pathinfo($filename, PATHINFO_FILENAME) . '.txt';
+        }
+
+        return $filename;
+    }
+
     // ============================= Transformation =============================
-    
+
     /**
      * Convert tabs to spaces
      */
@@ -1593,7 +1894,7 @@ class StringManager
     {
         return str_replace("\t", str_repeat(' ', $spaces), $string);
     }
-    
+
     /**
      * Convert spaces to tabs
      */
@@ -1601,7 +1902,7 @@ class StringManager
     {
         return str_replace(str_repeat(' ', $spaces), "\t", $string);
     }
-    
+
     /**
      * Convert to single line
      */
@@ -1609,16 +1910,16 @@ class StringManager
     {
         return str_replace(["\r\n", "\r", "\n"], ' ', $string);
     }
-    
+
     /**
      * Strip accents
      */
     public static function stripAccents(string $string): string
     {
-        $transliterator = \Transliterator::createFromRules(':: NFD; :: [:Nonspacing Mark:] Remove; :: NFC;');
+        $transliterator = Transliterator::createFromRules(':: NFD; :: [:Nonspacing Mark:] Remove; :: NFC;');
         return $transliterator->transliterate($string);
     }
-    
+
     /**
      * Expand contractions
      */
@@ -1635,12 +1936,12 @@ class StringManager
             "'m" => " am",
             "'s" => " is"
         ];
-        
+
         return str_ireplace(array_keys($contractions), array_values($contractions), $string);
     }
-    
+
     // ============================= Number Conversion =============================
-    
+
     /**
      * Convert all Unicode digits to English
      */
@@ -1648,27 +1949,27 @@ class StringManager
     {
         // Persian & Arabic
         $string = strtr($string, [
-            '۰'=>'0','۱'=>'1','۲'=>'2','۳'=>'3','۴'=>'4','۵'=>'5','۶'=>'6','۷'=>'7','۸'=>'8','۹'=>'9',
-            '٠'=>'0','١'=>'1','٢'=>'2','٣'=>'3','٤'=>'4','٥'=>'5','٦'=>'6','٧'=>'7','٨'=>'8','٩'=>'9'
+            '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4', '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
+            '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4', '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9'
         ]);
-        
+
         // Devanagari
-        $string = strtr($string, ['०'=>'0','१'=>'1','२'=>'2','३'=>'3','४'=>'4','५'=>'5','६'=>'6','७'=>'7','८'=>'8','९'=>'9']);
-        
+        $string = strtr($string, ['०' => '0', '१' => '1', '२' => '2', '३' => '3', '४' => '4', '५' => '5', '६' => '6', '७' => '7', '८' => '8', '९' => '9']);
+
         // Bengali
-        $string = strtr($string, ['০'=>'0','১'=>'1','২'=>'2','৩'=>'3','৪'=>'4','৫'=>'5','৬'=>'6','৭'=>'7','৮'=>'8','৯'=>'9']);
-        
+        $string = strtr($string, ['০' => '0', '১' => '1', '২' => '2', '৩' => '3', '৪' => '4', '৫' => '5', '৬' => '6', '৭' => '7', '৮' => '8', '৯' => '9']);
+
         // Thai
-        $string = strtr($string, ['๐'=>'0','๑'=>'1','๒'=>'2','๓'=>'3','๔'=>'4','๕'=>'5','๖'=>'6','๗'=>'7','๘'=>'8','๙'=>'9']);
-        
+        $string = strtr($string, ['๐' => '0', '๑' => '1', '๒' => '2', '๓' => '3', '๔' => '4', '๕' => '5', '๖' => '6', '๗' => '7', '๘' => '8', '๙' => '9']);
+
         // Chinese
-        $string = strtr($string, ['零'=>'0','一'=>'1','二'=>'2','三'=>'3','四'=>'4','五'=>'5','六'=>'6','七'=>'7','八'=>'8','九'=>'9']);
-        
+        $string = strtr($string, ['零' => '0', '一' => '1', '二' => '2', '三' => '3', '四' => '4', '五' => '5', '六' => '6', '七' => '7', '八' => '8', '九' => '9']);
+
         return $string;
     }
-    
+
     // ============================= Analysis & Statistics =============================
-    
+
     /**
      * Count words
      */
@@ -1676,7 +1977,7 @@ class StringManager
     {
         return str_word_count($string);
     }
-    
+
     /**
      * Count characters (excluding spaces)
      */
@@ -1685,10 +1986,10 @@ class StringManager
         if (!$includeSpaces) {
             $string = str_replace(' ', '', $string);
         }
-        
+
         return self::length($string);
     }
-    
+
     /**
      * Count lines
      */
@@ -1696,7 +1997,7 @@ class StringManager
     {
         return substr_count($string, "\n") + 1;
     }
-    
+
     /**
      * Get word frequency
      */
@@ -1705,11 +2006,11 @@ class StringManager
         if (!$caseSensitive) {
             $string = self::lower($string);
         }
-        
+
         $words = self::words($string);
         return array_count_values($words);
     }
-    
+
     /**
      * Get character frequency
      */
@@ -1718,20 +2019,20 @@ class StringManager
         if (!$caseSensitive) {
             $string = self::lower($string);
         }
-        
+
         $chars = self::toArray($string);
         return array_count_values($chars);
     }
-    
+
     /**
      * Calculate reading time (words per minute)
      */
     public static function readingTime(string $string, int $wordsPerMinute = 200): int
     {
         $wordCount = self::wordCount($string);
-        return (int) ceil($wordCount / $wordsPerMinute);
+        return (int)ceil($wordCount / $wordsPerMinute);
     }
-    
+
     /**
      * Get string entropy
      */
@@ -1740,15 +2041,15 @@ class StringManager
         $frequencies = self::charFrequency($string);
         $length = self::length($string);
         $entropy = 0.0;
-        
+
         foreach ($frequencies as $frequency) {
             $probability = $frequency / $length;
             $entropy -= $probability * log($probability, 2);
         }
-        
+
         return $entropy;
     }
-    
+
     /**
      * Calculate Levenshtein distance
      */
@@ -1756,7 +2057,7 @@ class StringManager
     {
         return levenshtein($string1, $string2);
     }
-    
+
     /**
      * Calculate similarity percentage
      */
@@ -1765,7 +2066,7 @@ class StringManager
         similar_text($string1, $string2, $percent);
         return round($percent, 2);
     }
-    
+
     /**
      * Calculate Jaro-Winkler distance
      */
@@ -1773,52 +2074,52 @@ class StringManager
     {
         $len1 = self::length($string1);
         $len2 = self::length($string2);
-        
+
         if ($len1 === 0 && $len2 === 0) return 1.0;
         if ($len1 === 0 || $len2 === 0) return 0.0;
-        
+
         $matchWindow = max($len1, $len2) / 2 - 1;
         $matchWindow = max(0, $matchWindow);
-        
+
         $matches = 0;
         $transpositions = 0;
-        
+
         $s1Matches = array_fill(0, $len1, false);
         $s2Matches = array_fill(0, $len2, false);
-        
+
         for ($i = 0; $i < $len1; $i++) {
             $start = max(0, $i - $matchWindow);
             $end = min($i + $matchWindow + 1, $len2);
-            
+
             for ($j = $start; $j < $end; $j++) {
                 if ($s2Matches[$j] || self::charAt($string1, $i) !== self::charAt($string2, $j)) {
                     continue;
                 }
-                
+
                 $s1Matches[$i] = true;
                 $s2Matches[$j] = true;
                 $matches++;
                 break;
             }
         }
-        
+
         if ($matches === 0) return 0.0;
-        
+
         $k = 0;
         for ($i = 0; $i < $len1; $i++) {
             if (!$s1Matches[$i]) continue;
-            
+
             while (!$s2Matches[$k]) $k++;
-            
+
             if (self::charAt($string1, $i) !== self::charAt($string2, $k)) {
                 $transpositions++;
             }
-            
+
             $k++;
         }
-        
+
         $jaro = ($matches / $len1 + $matches / $len2 + ($matches - $transpositions / 2) / $matches) / 3;
-        
+
         $prefix = 0;
         for ($i = 0; $i < min($len1, $len2); $i++) {
             if (self::charAt($string1, $i) === self::charAt($string2, $i)) {
@@ -1827,14 +2128,14 @@ class StringManager
                 break;
             }
         }
-        
+
         $prefix = min(4, $prefix);
-        
+
         return $jaro + $prefix * 0.1 * (1 - $jaro);
     }
-    
+
     // ============================= Generation =============================
-    
+
     /**
      * Generate random string
      */
@@ -1842,14 +2143,14 @@ class StringManager
     {
         $charactersLength = strlen($characters);
         $randomString = '';
-        
+
         for ($i = 0; $i < $length; $i++) {
             $randomString .= $characters[random_int(0, $charactersLength - 1)];
         }
-        
+
         return $randomString;
     }
-    
+
     /**
      * Generate random alphanumeric string
      */
@@ -1857,7 +2158,7 @@ class StringManager
     {
         return self::random($length);
     }
-    
+
     /**
      * Generate random alphabetic string
      */
@@ -1867,10 +2168,10 @@ class StringManager
         if ($uppercase) {
             $characters .= 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
         }
-        
+
         return self::random($length, $characters);
     }
-    
+
     /**
      * Generate random numeric string
      */
@@ -1878,7 +2179,7 @@ class StringManager
     {
         return self::random($length, '0123456789');
     }
-    
+
     /**
      * Generate random hexadecimal string
      */
@@ -1886,7 +2187,7 @@ class StringManager
     {
         return self::random($length, '0123456789abcdef');
     }
-    
+
     /**
      * Generate UUID v4
      */
@@ -1896,20 +2197,20 @@ class StringManager
             $data = random_bytes(16);
             $data[6] = chr(ord($data[6]) & 0x0f | 0x40);
             $data[8] = chr(ord($data[8]) & 0x3f | 0x80);
-            
+
             return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
         } catch (RandomException $e) {
             throw new InvalidArgumentException('Unable to generate UUID: ' . $e->getMessage());
         }
     }
-    
+
     /**
      * Generate UUID v5 (namespace-based)
      */
     public static function uuid5(string $namespace, string $name): string
     {
         $hash = sha1($namespace . $name);
-        
+
         return sprintf('%08s-%04s-%04x-%04x-%12s',
             substr($hash, 0, 8),
             substr($hash, 8, 4),
@@ -1918,9 +2219,10 @@ class StringManager
             substr($hash, 20, 12)
         );
     }
-    
+
     /**
      * Generate random password
+     * @throws RandomException
      */
     public static function generatePassword(int $length = 12, bool $includeSymbols = true): string
     {
@@ -1928,28 +2230,27 @@ class StringManager
         $uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
         $numbers = '0123456789';
         $symbols = '!@#$%^&*()_+-=[]{}|;:,.<>?';
-        
+
         $characters = $lowercase . $uppercase . $numbers;
         if ($includeSymbols) {
             $characters .= $symbols;
         }
-        
-        $password = '';
-        $password .= $lowercase[random_int(0, strlen($lowercase) - 1)];
+
+        $password = $lowercase[random_int(0, strlen($lowercase) - 1)];
         $password .= $uppercase[random_int(0, strlen($uppercase) - 1)];
         $password .= $numbers[random_int(0, strlen($numbers) - 1)];
-        
+
         if ($includeSymbols) {
             $password .= $symbols[random_int(0, strlen($symbols) - 1)];
         }
-        
+
         for ($i = strlen($password); $i < $length; $i++) {
             $password .= $characters[random_int(0, strlen($characters) - 1)];
         }
-        
+
         return str_shuffle($password);
     }
-    
+
     /**
      * Generate Lorem Ipsum text
      */
@@ -1965,38 +2266,38 @@ class StringManager
             'occaecat', 'cupidatat', 'non', 'proident', 'sunt', 'culpa', 'qui', 'officia',
             'deserunt', 'mollit', 'anim', 'id', 'est', 'laborum'
         ];
-        
+
         $result = [];
-        
+
         if ($startWithLorem) {
             $result[] = 'Lorem';
             $result[] = 'ipsum';
             $words -= 2;
         }
-        
+
         for ($i = 0; $i < $words; $i++) {
             $result[] = $loremWords[array_rand($loremWords)];
         }
-        
+
         return implode(' ', $result) . '.';
     }
-    
+
     // ============================= Formatting =============================
-    
+
     /**
      * Convert number to ordinal
      */
     public static function ordinal(int $number): string
     {
         $suffixes = ['th', 'st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th'];
-        
+
         if ((($number % 100) >= 11) && (($number % 100) <= 13)) {
             return $number . 'th';
         }
-        
+
         return $number . $suffixes[$number % 10];
     }
-    
+
     /**
      * Format currency
      */
@@ -2009,11 +2310,11 @@ class StringManager
             'JPY' => '¥',
             'IRR' => '﷼'
         ];
-        
+
         $symbol = $symbols[$currency] ?? $currency;
         return $symbol . number_format($amount, $decimals);
     }
-    
+
     /**
      * Format percentage
      */
@@ -2021,21 +2322,21 @@ class StringManager
     {
         return number_format($value * 100, $decimals) . '%';
     }
-    
+
     /**
      * Format bytes
      */
     public static function formatBytes(int $bytes, int $precision = 2): string
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
-        
+
         for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
             $bytes /= 1024;
         }
-        
+
         return round($bytes, $precision) . ' ' . $units[$i];
     }
-    
+
     /**
      * Format phone number
      */
@@ -2045,7 +2346,7 @@ class StringManager
         $phone = str_split($phone);
         $result = '';
         $phoneIndex = 0;
-        
+
         for ($i = 0; $i < strlen($format); $i++) {
             if ($format[$i] === '#' && isset($phone[$phoneIndex])) {
                 $result .= $phone[$phoneIndex];
@@ -2054,10 +2355,10 @@ class StringManager
                 $result .= $format[$i];
             }
         }
-        
+
         return $result;
     }
-    
+
     /**
      * Format credit card number
      */
@@ -2066,25 +2367,25 @@ class StringManager
         $number = preg_replace('/[^0-9]/', '', $number);
         return chunk_split($number, 4, ' ');
     }
-    
+
     /**
      * Mask string
      */
     public static function mask(string $string, int $start = 0, ?int $length = null, string $mask = '*'): string
     {
         $stringLength = self::length($string);
-        
+
         if ($length === null) {
             $length = $stringLength - $start;
         }
-        
+
         $masked = self::substring($string, 0, $start);
         $masked .= str_repeat($mask, $length);
         $masked .= self::substring($string, $start + $length);
-        
+
         return $masked;
     }
-    
+
     /**
      * Mask email
      */
@@ -2093,33 +2394,33 @@ class StringManager
         if (!self::isEmail($email)) {
             return $email;
         }
-        
+
         [$username, $domain] = explode('@', $email);
         $usernameLength = strlen($username);
-        
+
         if ($usernameLength <= 2) {
             $maskedUsername = str_repeat('*', $usernameLength);
         } else {
             $visibleChars = max(1, floor($usernameLength / 3));
-            $maskedUsername = substr($username, 0, $visibleChars) . 
-                            str_repeat('*', $usernameLength - 2 * $visibleChars) . 
-                            substr($username, -$visibleChars);
+            $maskedUsername = substr($username, 0, $visibleChars) .
+                str_repeat('*', $usernameLength - 2 * $visibleChars) .
+                substr($username, -$visibleChars);
         }
-        
+
         return $maskedUsername . '@' . $domain;
     }
-    
+
     // ============================= Text Extraction =============================
-    
+
     /**
      * Extract URLs from text
      */
     public static function extractUrls(string $text): array
     {
-        preg_match_all('/https?:\/\/[^\s]+/', $text, $matches);
+        preg_match_all('/https?:\/\/\S+/', $text, $matches);
         return $matches[0];
     }
-    
+
     /**
      * Extract emails from text
      */
@@ -2128,7 +2429,7 @@ class StringManager
         preg_match_all(self::PATTERN_EMAIL, $text, $matches);
         return $matches[0];
     }
-    
+
     /**
      * Extract hashtags from text
      */
@@ -2137,7 +2438,7 @@ class StringManager
         preg_match_all(self::PATTERN_HASHTAG, $text, $matches);
         return $matches[0];
     }
-    
+
     /**
      * Extract mentions from text
      */
@@ -2146,7 +2447,7 @@ class StringManager
         preg_match_all(self::PATTERN_MENTION, $text, $matches);
         return $matches[0];
     }
-    
+
     /**
      * Extract phone numbers from text
      */
@@ -2155,7 +2456,7 @@ class StringManager
         preg_match_all('/(\+?[1-9]\d{1,14})/', $text, $matches);
         return array_filter($matches[0], fn($phone) => self::isPhone($phone));
     }
-    
+
     /**
      * Extract numbers from text
      */
@@ -2164,19 +2465,19 @@ class StringManager
         preg_match_all('/\d+(?:\.\d+)?/', $text, $matches);
         return $matches[0];
     }
-    
+
     /**
      * Convert URLs to clickable links
      */
     public static function linkify(string $text): string
     {
         return preg_replace(
-            '/(https?:\/\/[^\s]+)/',
+            '/(https?:\/\/\S+)/',
             '<a href="$1" target="_blank">$1</a>',
             $text
         );
     }
-    
+
     /**
      * Highlight words in text
      */
@@ -2188,36 +2489,36 @@ class StringManager
             $text
         );
     }
-    
+
     /**
      * Create excerpt with context
      */
     public static function excerpt(string $text, string $keyword, int $radius = 100): string
     {
         $position = self::indexOf(self::lower($text), self::lower($keyword));
-        
+
         if ($position === false) {
             return self::truncate($text, $radius * 2);
         }
-        
+
         $start = max(0, $position - $radius);
         $length = min(self::length($text) - $start, ($radius * 2) + self::length($keyword));
-        
+
         $excerpt = self::substring($text, $start, $length);
-        
+
         if ($start > 0) {
             $excerpt = '...' . $excerpt;
         }
-        
+
         if ($start + $length < self::length($text)) {
             $excerpt .= '...';
         }
-        
+
         return $excerpt;
     }
-    
+
     // ============================= String Comparison =============================
-    
+
     /**
      * Compare strings
      */
@@ -2227,10 +2528,10 @@ class StringManager
             $string1 = self::lower($string1);
             $string2 = self::lower($string2);
         }
-        
+
         return strcmp($string1, $string2);
     }
-    
+
     /**
      * Natural comparison
      */
@@ -2238,23 +2539,23 @@ class StringManager
     {
         return $caseSensitive ? strnatcmp($string1, $string2) : strnatcasecmp($string1, $string2);
     }
-    
+
     /**
      * Find common prefix
      */
     public static function commonPrefix(string $string1, string $string2): string
     {
         $length = min(self::length($string1), self::length($string2));
-        
+
         for ($i = 0; $i < $length; $i++) {
             if (self::charAt($string1, $i) !== self::charAt($string2, $i)) {
                 break;
             }
         }
-        
+
         return self::substring($string1, 0, $i);
     }
-    
+
     /**
      * Find common suffix
      */
@@ -2263,16 +2564,16 @@ class StringManager
         $len1 = self::length($string1);
         $len2 = self::length($string2);
         $length = min($len1, $len2);
-        
+
         for ($i = 0; $i < $length; $i++) {
             if (self::charAt($string1, $len1 - 1 - $i) !== self::charAt($string2, $len2 - 1 - $i)) {
                 break;
             }
         }
-        
+
         return self::substring($string1, $len1 - $i);
     }
-    
+
     /**
      * Find longest common substring
      */
@@ -2281,27 +2582,27 @@ class StringManager
         $len1 = self::length($string1);
         $len2 = self::length($string2);
         $longest = '';
-        
+
         for ($i = 0; $i < $len1; $i++) {
             for ($j = 0; $j < $len2; $j++) {
                 $len = 0;
-                
-                while (($i + $len < $len1) && ($j + $len < $len2) && 
-                       (self::charAt($string1, $i + $len) === self::charAt($string2, $j + $len))) {
+
+                while (($i + $len < $len1) && ($j + $len < $len2) &&
+                    (self::charAt($string1, $i + $len) === self::charAt($string2, $j + $len))) {
                     $len++;
                 }
-                
+
                 if ($len > self::length($longest)) {
                     $longest = self::substring($string1, $i, $len);
                 }
             }
         }
-        
+
         return $longest;
     }
-    
+
     // ============================= Advanced Features =============================
-    
+
     /**
      * Parse CSV line
      */
@@ -2309,7 +2610,7 @@ class StringManager
     {
         return str_getcsv($line, $delimiter, $enclosure);
     }
-    
+
     /**
      * Convert array to CSV
      */
@@ -2320,10 +2621,10 @@ class StringManager
         rewind($output);
         $csv = stream_get_contents($output);
         fclose($output);
-        
+
         return trim($csv);
     }
-    
+
     /**
      * Parse query string
      */
@@ -2332,7 +2633,7 @@ class StringManager
         parse_str($query, $result);
         return $result;
     }
-    
+
     /**
      * Build query string
      */
@@ -2340,7 +2641,7 @@ class StringManager
     {
         return http_build_query($data);
     }
-    
+
     /**
      * Obfuscate string
      */
@@ -2348,7 +2649,7 @@ class StringManager
     {
         return base64_encode(gzcompress($string, 9));
     }
-    
+
     /**
      * Deobfuscate string
      */
@@ -2356,7 +2657,7 @@ class StringManager
     {
         return gzuncompress(base64_decode($obfuscated)) ?: '';
     }
-    
+
     /**
      * Convert to plural (basic English rules)
      */
@@ -2371,28 +2672,28 @@ class StringManager
             'mouse' => 'mice',
             'goose' => 'geese'
         ];
-        
+
         $lowerWord = self::lower($word);
-        
+
         if (isset($irregulars[$lowerWord])) {
             return $irregulars[$lowerWord];
         }
-        
+
         if (preg_match('/(s|sh|ch|x|z)$/', $lowerWord)) {
             return $word . 'es';
         }
-        
+
         if (preg_match('/[^aeiou]y$/', $lowerWord)) {
             return substr($word, 0, -1) . 'ies';
         }
-        
+
         if (preg_match('/[^f]fe?$/', $lowerWord)) {
             return preg_replace('/fe?$/', 'ves', $word);
         }
-        
+
         return $word . 's';
     }
-    
+
     /**
      * Convert to singular (basic English rules)
      */
@@ -2407,32 +2708,32 @@ class StringManager
             'mouse' => 'mice',
             'goose' => 'geese'
         ]);
-        
+
         $lowerWord = self::lower($word);
-        
+
         if (isset($irregulars[$lowerWord])) {
             return $irregulars[$lowerWord];
         }
-        
-        if (preg_match('/ies$/', $lowerWord)) {
+
+        if (str_ends_with($lowerWord, 'ies')) {
             return substr($word, 0, -3) . 'y';
         }
-        
-        if (preg_match('/ves$/', $lowerWord)) {
+
+        if (str_ends_with($lowerWord, 'ves')) {
             return substr($word, 0, -3) . 'f';
         }
-        
+
         if (preg_match('/(s|sh|ch|x|z)es$/', $lowerWord)) {
             return substr($word, 0, -2);
         }
-        
-        if (preg_match('/s$/', $lowerWord) && !preg_match('/ss$/', $lowerWord)) {
+
+        if (str_ends_with($lowerWord, 's') && !str_ends_with($lowerWord, 'ss')) {
             return substr($word, 0, -1);
         }
-        
+
         return $word;
     }
-    
+
     /**
      * Humanize string
      */
@@ -2443,7 +2744,7 @@ class StringManager
         $string = self::lower($string);
         return self::capitalize($string);
     }
-    
+
     /**
      * Table flip (for fun!)
      */
@@ -2460,13 +2761,13 @@ class StringManager
             '9' => '6', '.' => '˙', ',' => "'", '?' => '¿', '!' => '¡',
             '"' => '„', "'" => '‛', '(' => ')', ')' => '('
         ];
-        
+
         $result = '';
         for ($i = self::length($string) - 1; $i >= 0; $i--) {
             $char = self::charAt($string, $i);
             $result .= $flips[self::lower($char)] ?? $char;
         }
-        
+
         return $result;
     }
 }

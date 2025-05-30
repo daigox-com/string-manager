@@ -10,9 +10,13 @@
         }
     ],
     "require": {
-        "php": "^8.0",
+        "php": "^8.2",
         "ext-mbstring": "*",
-        "ext-intl": "*"
+        "ext-intl": "*",
+      "ext-libxml": "*",
+      "ext-simplexml": "*",
+      "ext-iconv": "*",
+      "ext-zlib": "*"
     },
     "autoload": {
         "psr-4": {
