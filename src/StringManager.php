@@ -2770,4 +2770,58 @@ class StringManager
 
         return $result;
     }
+
+    /**
+     * Calculate password strength score (0-100)
+     */
+    public static function passwordStrength(string $password): int
+    {
+        $score = 0;
+        $length = self::length($password);
+        
+        // Length scoring (max 25 points)
+        if ($length >= 12) {
+            $score += 25;
+        } elseif ($length >= 8) {
+            $score += 20;
+        } elseif ($length >= 6) {
+            $score += 15;
+        } elseif ($length >= 4) {
+            $score += 10;
+        }
+        
+        // Character variety scoring (max 75 points)
+        $patterns = [
+            '/[a-z]/' => 15,    // lowercase letters
+            '/[A-Z]/' => 15,    // uppercase letters
+            '/[0-9]/' => 15,    // numbers
+            '/[^a-zA-Z0-9]/' => 15, // special characters
+        ];
+        
+        foreach ($patterns as $pattern => $points) {
+            if (preg_match($pattern, $password)) {
+                $score += $points;
+            }
+        }
+        
+        // Bonus points for length over 12 characters (max 15 points)
+        if ($length > 12) {
+            $score += min(15, ($length - 12) * 2);
+        }
+        
+        // Penalty for common patterns
+        $commonPatterns = [
+            '/(.)\1{2,}/',      // repeated characters (aaa, 111)
+            '/123|abc|qwe/',    // sequential characters
+            '/password|admin|user/', // common words
+        ];
+        
+        foreach ($commonPatterns as $pattern) {
+            if (preg_match($pattern, self::lower($password))) {
+                $score -= 10;
+            }
+        }
+        
+        return max(0, min(100, $score));
+    }
 }
