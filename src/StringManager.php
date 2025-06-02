@@ -1507,10 +1507,13 @@ class StringManager
     /**
      * Sanitize for username
      */
-    public static function sanitizeUsername(string $username, bool $lowercase = true, bool $allowDash = false, bool $allowDot = false): string
+    public static function sanitizeUsername(string $username, bool $lowercase = true, bool $allowDash = false, bool $allowDot = false, bool $allowUnderscore = true): string
     {
         // Build allowed character pattern based on parameters
-        $allowedChars = 'a-zA-Z0-9_';
+        $allowedChars = 'a-zA-Z0-9';
+        if ($allowUnderscore) {
+            $allowedChars .= '_';
+        }
         if ($allowDash) {
             $allowedChars .= '\-';
         }
@@ -1521,8 +1524,12 @@ class StringManager
         $username = preg_replace('/[^' . $allowedChars . ']/', '', $username);
         
         // Build trim and replacement patterns based on allowed characters
-        $trimChars = '_';
-        $replacePattern = '[_';
+        $trimChars = '';
+        $replacePattern = '[';
+        if ($allowUnderscore) {
+            $trimChars .= '_';
+            $replacePattern .= '_';
+        }
         if ($allowDash) {
             $trimChars .= '-';
             $replacePattern .= '\-';
@@ -1533,8 +1540,12 @@ class StringManager
         }
         $replacePattern .= ']{2,}';
         
-        $username = trim($username, $trimChars);
-        $username = preg_replace('/' . $replacePattern . '/', '_', $username);
+        if ($trimChars) {
+            $username = trim($username, $trimChars);
+        }
+        if (strlen($replacePattern) > 3) {
+            $username = preg_replace('/' . $replacePattern . '/', '_', $username);
+        }
 
         if ($lowercase) {
             $username = self::lower($username);
