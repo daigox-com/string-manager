@@ -1,5 +1,5 @@
 {
-    "name": "daigox/string-manager",
+    "name": "daigox-com/string-manager",
     "description": "🛠️ Powerful multilingual string utilities for PHP (username, slug, mask, uuid, …)",
     "type": "library",
     "license": "MIT",

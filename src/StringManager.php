@@ -1507,11 +1507,34 @@ class StringManager
     /**
      * Sanitize for username
      */
-    public static function sanitizeUsername(string $username, bool $lowercase = true): string
+    public static function sanitizeUsername(string $username, bool $lowercase = true, bool $allowDash = false, bool $allowDot = false): string
     {
-        $username = preg_replace('/[^a-zA-Z0-9_\-.]/', '', $username);
-        $username = trim($username, "-._");
-        $username = preg_replace('/[\-._]{2,}/', '_', $username);
+        // Build allowed character pattern based on parameters
+        $allowedChars = 'a-zA-Z0-9_';
+        if ($allowDash) {
+            $allowedChars .= '\-';
+        }
+        if ($allowDot) {
+            $allowedChars .= '.';
+        }
+        
+        $username = preg_replace('/[^' . $allowedChars . ']/', '', $username);
+        
+        // Build trim and replacement patterns based on allowed characters
+        $trimChars = '_';
+        $replacePattern = '[_';
+        if ($allowDash) {
+            $trimChars .= '-';
+            $replacePattern .= '\-';
+        }
+        if ($allowDot) {
+            $trimChars .= '.';
+            $replacePattern .= '.';
+        }
+        $replacePattern .= ']{2,}';
+        
+        $username = trim($username, $trimChars);
+        $username = preg_replace('/' . $replacePattern . '/', '_', $username);
 
         if ($lowercase) {
             $username = self::lower($username);
