@@ -1518,32 +1518,32 @@ class StringManager
             $allowedChars .= '\-';
         }
         if ($allowDot) {
-            $allowedChars .= '.';
+            $allowedChars .= '\.';
         }
         
         $username = preg_replace('/[^' . $allowedChars . ']/', '', $username);
         
         // Build trim and replacement patterns based on allowed characters
         $trimChars = '';
-        $replacePattern = '[';
+        $replacePatternParts = [];
         if ($allowUnderscore) {
             $trimChars .= '_';
-            $replacePattern .= '_';
+            $replacePatternParts[] = '_';
         }
         if ($allowDash) {
             $trimChars .= '-';
-            $replacePattern .= '\-';
+            $replacePatternParts[] = '\-';
         }
         if ($allowDot) {
             $trimChars .= '.';
-            $replacePattern .= '.';
+            $replacePatternParts[] = '\.';
         }
-        $replacePattern .= ']{2,}';
         
         if ($trimChars) {
             $username = trim($username, $trimChars);
         }
-        if (strlen($replacePattern) > 3) {
+        if (!empty($replacePatternParts)) {
+            $replacePattern = '[' . implode('', $replacePatternParts) . ']{2,}';
             $username = preg_replace('/' . $replacePattern . '/', '_', $username);
         }
 
