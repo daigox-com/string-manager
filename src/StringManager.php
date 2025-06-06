@@ -2879,4 +2879,23 @@ class StringManager
         
         return 'username';
     }
+
+    /**
+     * Remove all characters except allowed ones, keeping a-z, A-Z, 0-9, and custom allowed characters
+     * 
+     * @param string $input The input string to filter
+     * @param array $allowedChars Array of additional allowed characters
+     * @return string The filtered string with only allowed characters
+     */
+    public static function filterAllowedChars(string $input, array $allowedChars = []): string
+    {
+        $basePattern = 'a-zA-Z0-9';
+        
+        $escapedChars = array_map(function($char) {
+            return preg_quote($char, '/');
+        }, $allowedChars);
+        
+        $pattern = '/[^' . $basePattern . implode('', $escapedChars) . ']/';
+        return preg_replace($pattern, '', $input);
+    }
 }
