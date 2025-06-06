@@ -2858,4 +2858,25 @@ class StringManager
         
         return max(0, min(100, $score));
     }
+
+    /**
+     * Detect the type of login input (username, phone, or email)
+     * 
+     * @param string $input The input to analyze
+     * @return string Returns 'phone', 'email', or 'username'
+     */
+    public static function detectLoginType(string $input): string
+    {
+        $cleaned = preg_replace('/\s+/', '', trim($input));
+        
+        if (preg_match('/^\+?[0-9]+$/', $cleaned)) {
+            return 'phone';
+        }
+        
+        if (preg_match('/^[^@]+@[^@]+$/', $cleaned) && filter_var($cleaned, FILTER_VALIDATE_EMAIL)) {
+            return 'email';
+        }
+        
+        return 'username';
+    }
 }
